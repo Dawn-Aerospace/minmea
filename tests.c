@@ -894,6 +894,12 @@ START_TEST(test_minmea_usage1)
         "$GPGLL,3723.2475,N,12158.3416,W,161229.487,A,A*41",
         "$GPGST,024603.00,3.2,6.6,4.7,47.3,5.8,5.6,22.0*58",
         "$GPVTG,096.5,T,083.5,M,0.0,N,0.0,K,D*22",
+
+        // Flarm sentences
+        "$PFLAU,3,1,2,1,2,-30,2,-32,755,123456",
+        "$PFLAA,0,-1234,1234,220,2,DD8F12,180,,30,-1.4,1,1,2,3",
+        "$PFLAE,A,3,11,Software expiry",
+
         NULL,
     };
 
@@ -927,6 +933,21 @@ START_TEST(test_minmea_usage1)
             case MINMEA_SENTENCE_VTG: {
                 struct minmea_sentence_vtg frame;
                 ck_assert(minmea_parse_vtg(&frame, *sentence) == true);
+            } break;
+
+            case MINMEA_SENTENCE_FLARM_LAU: {
+                struct minmea_sentence_lau frame;
+                ck_assert(minmea_parse_lau(&frame, *sentence) == true);
+            } break;
+
+            case MINMEA_SENTENCE_FLARM_LAA: {
+                struct minmea_sentence_laa frame;
+                ck_assert(minmea_parse_laa(&frame, *sentence) == true);
+            } break;
+
+            case MINMEA_SENTENCE_FLARM_LAE: {
+                struct minmea_sentence_lae frame;
+                ck_assert(minmea_parse_lae(&frame, *sentence) == true);
             } break;
 
             default: {
@@ -1035,6 +1056,362 @@ START_TEST(test_minmea_coord)
 }
 END_TEST
 
+
+// FLARM senstences
+START_TEST(test_minmea_parse_lau1)
+    {
+        const char *sentence = "$PFLAU,3,1,2,1,2,-30,2,-32,755,123456";
+        struct minmea_sentence_lau frame = {};
+        struct minmea_sentence_lau expected = {};
+
+        expected = (struct minmea_sentence_lau) {
+                .rx = 3,
+                .tx = 1,
+                .gps = 2,
+                .power = 1,
+                .alarm_level = 2,
+                .relative_bearing = -30,
+                .alarm_type = "2",
+                .relative_vertical = -32,
+                .relative_distance = 755,
+                .id = "123456",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lau(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+START_TEST(test_minmea_parse_lau2)
+    {
+        const char *sentence = "$PFLAU,3,1,2,1,2,-30,2,-32,755";
+        struct minmea_sentence_lau frame = {};
+        struct minmea_sentence_lau expected = {};
+
+        expected = (struct minmea_sentence_lau) {
+                .rx = 3,
+                .tx = 1,
+                .gps = 2,
+                .power = 1,
+                .alarm_level = 2,
+                .relative_bearing = -30,
+                .alarm_type = "2",
+                .relative_vertical = -32,
+                .relative_distance = 755,
+                .id = "",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lau(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lau3)
+    {
+        const char *sentence = "$PFLAU,2,1,1,1,0,,0,,,";
+        struct minmea_sentence_lau frame = {};
+        struct minmea_sentence_lau expected = {};
+
+        expected = (struct minmea_sentence_lau) {
+                .rx = 2,
+                .tx = 1,
+                .gps = 1,
+                .power = 1,
+                .alarm_level = 0,
+                .relative_bearing = 0,
+                .alarm_type = "0",
+                .relative_vertical = 0,
+                .relative_distance = 0,
+                .id = "",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lau(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+START_TEST(test_minmea_parse_lau4)
+    {
+        const char *sentence = "$PFLAU,2,1,2,1,1,-45,2,50,75,1A304C";
+        struct minmea_sentence_lau frame = {};
+        struct minmea_sentence_lau expected = {};
+
+        expected = (struct minmea_sentence_lau) {
+                .rx = 2,
+                .tx = 1,
+                .gps = 2,
+                .power = 1,
+                .alarm_level = 1,
+                .relative_bearing = -45,
+                .alarm_type = "2",
+                .relative_vertical = 50,
+                .relative_distance = 75,
+                .id = "1A304C",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lau(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lau5)
+    {
+        const char *sentence = "$PFLAU,2,1,2,1,1,0,41,0,0,A25703";
+        struct minmea_sentence_lau frame = {};
+        struct minmea_sentence_lau expected = {};
+
+        expected = (struct minmea_sentence_lau) {
+                .rx = 2,
+                .tx = 1,
+                .gps = 2,
+                .power = 1,
+                .alarm_level = 1,
+                .relative_bearing = 0,
+                .alarm_type = "41",
+                .relative_vertical = 0,
+                .relative_distance = 0,
+                .id = "A25703",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lau(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_laa1)
+    {
+        const char *sentence = "$PFLAA,0,-1234,1234,220,2,DD8F12,180,,30,-1.4,1";
+        struct minmea_sentence_laa frame = {};
+        struct minmea_sentence_laa expected = {};
+
+        expected = (struct minmea_sentence_laa) {
+                .alarm_level = 0,
+                .relative_north = -1234,
+                .relative_east = 1234,
+                .relative_vertical = 220,
+                .idtype = 2,
+                .id = "DD8F12",
+                .track = 180,
+                .turn_rate = 0,
+                .ground_speed = 30,
+                .climb_rate = -1.4f,
+                .acft_type = 1,
+                .no_track = -1,
+                .source = -1,
+                .rssi = -1,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_laa(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_laa2)
+    {
+        const char *sentence = "$PFLAA,0,-1234,1234,220,2,DD8F12,180,,30,-1.4,1,1";
+        struct minmea_sentence_laa frame = {};
+        struct minmea_sentence_laa expected = {};
+
+        expected = (struct minmea_sentence_laa) {
+                .alarm_level = 0,
+                .relative_north = -1234,
+                .relative_east = 1234,
+                .relative_vertical = 220,
+                .idtype = 2,
+                .id = "DD8F12",
+                .track = 180,
+                .turn_rate = 0,
+                .ground_speed = 30,
+                .climb_rate = -1.4f,
+                .acft_type = 1,
+                .no_track = 1,
+                .source = -1,
+                .rssi = -1,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_laa(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+START_TEST(test_minmea_parse_laa3)
+    {
+        const char *sentence = "$PFLAA,0,-1234,1234,220,2,DD8F12,180,,30,-1.4,1,1,2,3";
+        struct minmea_sentence_laa frame = {};
+        struct minmea_sentence_laa expected = {};
+
+        expected = (struct minmea_sentence_laa) {
+                .alarm_level = 0,
+                .relative_north = -1234,
+                .relative_east = 1234,
+                .relative_vertical = 220,
+                .idtype = 2,
+                .id = "DD8F12",
+                .track = 180,
+                .turn_rate = 0,
+                .ground_speed = 30,
+                .climb_rate = -1.4f,
+                .acft_type = 1,
+                .no_track = 1,
+                .source = 2,
+                .rssi = 3,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_laa(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lae1)
+    {
+        const char *sentence = "$PFLAE,A,0,0\r\n";
+        struct minmea_sentence_lae frame = {};
+        struct minmea_sentence_lae expected = {};
+
+        expected = (struct minmea_sentence_lae) {
+                .query_type = 'A',
+                .severity = 0,
+                .error_code = "0",
+                .message = "",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lae(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lae2)
+    {
+        const char *sentence = "$PFLAE,A";
+        struct minmea_sentence_lae frame = {};
+        struct minmea_sentence_lae expected = {};
+
+        expected = (struct minmea_sentence_lae) {
+                .query_type = 'A',
+                .severity = 0,
+                .error_code = "",
+                .message = "",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lae(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lae3)
+    {
+        const char *sentence = "$PFLAE,R";
+        struct minmea_sentence_lae frame = {};
+        struct minmea_sentence_lae expected = {};
+
+        expected = (struct minmea_sentence_lae) {
+                .query_type = 'R',
+                .severity = 0,
+                .error_code = "",
+                .message = "",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lae(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_lae4)
+    {
+        const char *sentence = "$PFLAE,A,3,11,Software expiry";
+        struct minmea_sentence_lae frame = {};
+        struct minmea_sentence_lae expected = {};
+
+        expected = (struct minmea_sentence_lae) {
+                .query_type = 'A',
+                .severity = 3,
+                .error_code = "11",
+                .message = "Software expiry",
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_lae(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_rmz1)
+    {
+        const char *sentence = "$PGRMZ,1234,F,3";
+        struct minmea_sentence_rmz frame = {};
+        struct minmea_sentence_rmz expected = {};
+
+        expected = (struct minmea_sentence_rmz) {
+               .barometric_altitude = 1234,
+               .unit = 'F',
+               .position_fix_dimension = 3,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_rmz(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_rmz2)
+    {
+        const char *sentence = "$PGRMZ,1234,F";
+        struct minmea_sentence_rmz frame = {};
+        struct minmea_sentence_rmz expected = {};
+
+        expected = (struct minmea_sentence_rmz) {
+                .barometric_altitude = 1234,
+                .unit = 'F',
+                .position_fix_dimension = -1,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_rmz(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
+START_TEST(test_minmea_parse_rmz3)
+    {
+        const char *sentence = "$PGRMZ,1234,F,2";
+        struct minmea_sentence_rmz frame = {};
+        struct minmea_sentence_rmz expected = {};
+
+        expected = (struct minmea_sentence_rmz) {
+                .barometric_altitude = 1234,
+                .unit = 'F',
+                .position_fix_dimension = 2,
+        };
+
+        ck_assert(minmea_check(sentence, false) == true);
+        ck_assert(minmea_parse_rmz(&frame, sentence) == true);
+        ck_assert(!memcmp(&frame, &expected, sizeof(frame)));
+    }
+END_TEST
+
+
 static Suite *minmea_suite(void)
 {
     Suite *s = suite_create ("minmea");
@@ -1077,6 +1454,22 @@ static Suite *minmea_suite(void)
     tcase_add_test(tc_parse, test_minmea_parse_vtg1);
     tcase_add_test(tc_parse, test_minmea_parse_vtg2);
     tcase_add_test(tc_parse, test_minmea_parse_zda1);
+
+    tcase_add_test(tc_parse, test_minmea_parse_lau1);
+    tcase_add_test(tc_parse, test_minmea_parse_lau2);
+    tcase_add_test(tc_parse, test_minmea_parse_lau3);
+    tcase_add_test(tc_parse, test_minmea_parse_lau4);
+    tcase_add_test(tc_parse, test_minmea_parse_lau5);
+    tcase_add_test(tc_parse, test_minmea_parse_laa1);
+    tcase_add_test(tc_parse, test_minmea_parse_laa2);
+    tcase_add_test(tc_parse, test_minmea_parse_laa3);
+    tcase_add_test(tc_parse, test_minmea_parse_lae1);
+    tcase_add_test(tc_parse, test_minmea_parse_lae2);
+    tcase_add_test(tc_parse, test_minmea_parse_lae3);
+    tcase_add_test(tc_parse, test_minmea_parse_lae4);
+    tcase_add_test(tc_parse, test_minmea_parse_rmz1);
+    tcase_add_test(tc_parse, test_minmea_parse_rmz2);
+    tcase_add_test(tc_parse, test_minmea_parse_rmz3);
     suite_add_tcase(s, tc_parse);
 
     TCase *tc_usage = tcase_create("minmea_usage");

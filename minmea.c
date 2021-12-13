@@ -375,6 +375,19 @@ enum minmea_sentence_id minmea_sentence_id(const char *sentence, bool strict)
     if (!strcmp(type+2, "ZDA"))
         return MINMEA_SENTENCE_ZDA;
 
+    if (!strcmp(type+2, "LAU"))
+        return MINMEA_SENTENCE_FLARM_LAU;
+    if (!strcmp(type+2, "LAA"))
+        return MINMEA_SENTENCE_FLARM_LAA;
+    if (!strcmp(type+2, "LAE"))
+        return MINMEA_SENTENCE_FLARM_LAE;
+    if (!strcmp(type+2, "RMZ"))
+        return MINMEA_SENTENCE_GARMIN_RMZ;
+    if (!strcmp(type+2, "LAR"))
+        return MINMEA_SENTENCE_FLARM_LAR;
+    if (!strcmp(type+2, "LAF"))
+        return MINMEA_SENTENCE_FLARM_LAF;
+
     return MINMEA_UNKNOWN;
 }
 
@@ -611,6 +624,186 @@ bool minmea_parse_zda(struct minmea_sentence_zda *frame, const char *sentence)
 
   return true;
 }
+
+bool minmea_parse_lau(struct minmea_sentence_lau *frame, const char *sentence)
+{
+    // $PFLAU,3,1,2,1,2,-30,2,-32,755*
+    char type[6];
+
+    if(!minmea_scan(sentence, "tiiiiiisiis",
+                    type,
+                    &frame->rx,
+                    &frame->tx,
+                    &frame->gps,
+                    &frame->power,
+                    &frame->alarm_level,
+                    &frame->relative_bearing,
+                    &frame->alarm_type,
+                    &frame->relative_vertical,
+                    &frame->relative_distance,
+                    &frame->id
+                    )) {
+        if (minmea_scan(sentence, "tiiiiiisii",
+                        type,
+                        &frame->rx,
+                        &frame->tx,
+                        &frame->gps,
+                        &frame->power,
+                        &frame->alarm_level,
+                        &frame->relative_bearing,
+                        &frame->alarm_type,
+                        &frame->relative_vertical,
+                        &frame->relative_distance
+        )) {
+            frame->id[0] = 0;
+        } else {
+            return false;
+        }
+    }
+
+    if (strcmp(type+2, "LAU") != 0)
+        return false;
+
+    return true;
+}
+
+bool minmea_parse_laa(struct minmea_sentence_laa *frame, const char *sentence)
+{
+    // $GPZDA,201530.00,04,07,2002,00,00*60
+    char type[6];
+    struct minmea_float climb_rate;
+
+    // Default values
+    frame->no_track = -1;
+    frame->source = -1;
+    frame->rssi = -1;
+
+    if(minmea_scan(sentence, "tiiiiisiiifiiii",
+                   type,
+                   &frame->alarm_level,
+                   &frame->relative_north,
+                   &frame->relative_east,
+                   &frame->relative_vertical,
+                   &frame->idtype,
+                   &frame->id,
+                   &frame->track,
+                   &frame->turn_rate,
+                   &frame->ground_speed,
+                   &climb_rate,
+                   &frame->acft_type,
+                   &frame->no_track,
+                   &frame->source,
+                   &frame->rssi)) {
+        frame->climb_rate = minmea_tofloat(&climb_rate);
+    } else {
+        if(minmea_scan(sentence, "tiiiiisiiifii",
+                       type,
+                       &frame->alarm_level,
+                       &frame->relative_north,
+                       &frame->relative_east,
+                       &frame->relative_vertical,
+                       &frame->idtype,
+                       &frame->id,
+                       &frame->track,
+                       &frame->turn_rate,
+                       &frame->ground_speed,
+                       &climb_rate,
+                       &frame->acft_type,
+                       &frame->no_track)) {
+            frame->climb_rate = minmea_tofloat(&climb_rate);
+        } else {
+            if(minmea_scan(sentence, "tiiiiisiiifi",
+                           type,
+                           &frame->alarm_level,
+                           &frame->relative_north,
+                           &frame->relative_east,
+                           &frame->relative_vertical,
+                           &frame->idtype,
+                           &frame->id,
+                           &frame->track,
+                           &frame->turn_rate,
+                           &frame->ground_speed,
+                           &climb_rate,
+                           &frame->acft_type)) {
+                frame->climb_rate = minmea_tofloat(&climb_rate);
+            } else {
+                return false;
+            }
+        }
+    }
+
+    if (strcmp(type+2, "LAA") != 0)
+        return false;
+
+    return true;
+}
+
+
+bool minmea_parse_lae(struct minmea_sentence_lae *frame, const char *sentence)
+{
+    char type[6];
+
+    // Default values
+    frame->error_code[0] = 0;
+    frame->message[0] = 0;
+
+    if(!minmea_scan(sentence, "tciss",
+                    type,
+                    &frame->query_type,
+                    &frame->severity,
+                    &frame->error_code,
+                    &frame->message
+                    )) {
+        if(!minmea_scan(sentence, "tcis",
+                        type,
+                        &frame->query_type,
+                        &frame->severity,
+                        &frame->error_code
+        )) {
+            if(!minmea_scan(sentence, "tc",
+                           type,
+                           &frame->query_type
+            )) {
+                return false;
+            }
+        }
+    }
+
+    if (strcmp(type+2, "LAE") != 0)
+        return false;
+
+    return true;
+}
+
+
+bool minmea_parse_rmz(struct minmea_sentence_rmz *frame, const char *sentence)
+{
+    // $GPZDA,201530.00,04,07,2002,00,00*60
+    char type[6];
+
+    // Default values
+    frame->position_fix_dimension = -1;
+
+    if(!minmea_scan(sentence, "tici",
+                    type,
+                    &frame->barometric_altitude,
+                    &frame->unit,
+                    &frame->position_fix_dimension
+    )) {
+        if (!minmea_scan(sentence, "tic",
+                         type,
+                         &frame->barometric_altitude,
+                         &frame->unit)) {
+            return false;
+        }
+    }
+
+    if (strcmp(type+2, "RMZ") != 0)
+        return false;
+
+    return true;
+}
+
 
 int minmea_gettime(struct timespec *ts, const struct minmea_date *date, const struct minmea_time *time_)
 {

@@ -36,6 +36,14 @@ enum minmea_sentence_id {
     MINMEA_SENTENCE_GSV,
     MINMEA_SENTENCE_VTG,
     MINMEA_SENTENCE_ZDA,
+
+    // FLARM sentences
+    MINMEA_SENTENCE_FLARM_LAU,  // Heartbeat, status, and basic alarms
+    MINMEA_SENTENCE_FLARM_LAA,  // Data on other proximate aircraft
+    MINMEA_SENTENCE_FLARM_LAE,  // Self-test result and errors codes
+    MINMEA_SENTENCE_GARMIN_RMZ,   // Garmin's barometric altitude
+    MINMEA_SENTENCE_FLARM_LAR, // Reset
+    MINMEA_SENTENCE_FLARM_LAF  // Simulated traffic and alarms
 };
 
 struct minmea_float {
@@ -163,6 +171,68 @@ struct minmea_sentence_zda {
     int minute_offset;
 };
 
+// Flarm sentences
+struct minmea_sentence_lau {
+    int rx;  // [0->99] Number of devices with unique ID's currently received.
+    int tx;  // [0,1]
+    int gps;  // [0,2]
+    int power;  // [0,1]
+    int alarm_level;  // [0,3]
+    int relative_bearing;  // [-180,180]
+    char alarm_type[3];  // Hex, [0, FF]
+    int relative_vertical;  // [-32768,32767]
+    int relative_distance;  // [0,2147483647]
+    char id[7]; // 6-digit hexadecimal value, omitted for protocol version < 4
+};
+
+struct minmea_sentence_laa {
+    int alarm_level;  // [0-3]
+    int relative_north;  // [-20000000,20000000]
+    int relative_east;  // [-20000000,20000000]
+    int relative_vertical;  // [-32768,32767]
+    int idtype;  // [0-2]
+    char id[7];  // 6-digit hexadecimal value
+    int track;  // [0-359]
+    int turn_rate;  // Empty, nothing here
+    int ground_speed;  // [0,32767]
+    float climb_rate;  // [-32.7-32.7]
+    int acft_type;  //
+    int no_track;
+    int source;
+    int rssi;
+
+    // Not all versions of the protocol have all fields,
+    // this field indicated which fields are exluded
+    // 0: Excludes, no_track, source and rssi.
+    // 1: Excludes, source and rssi.
+    // 2: All included.
+//    int includes;
+};
+
+struct minmea_sentence_lae {
+    char query_type;  // [RA]
+    int severity;  // [0-3]
+    char error_code[4];  // Hex, [0-FFF]
+    char message[41];
+};
+
+struct minmea_sentence_rmz {
+    int barometric_altitude;
+    char unit;
+    int position_fix_dimension;
+};
+
+//struct minmea_sentence_lar {
+//
+//};
+//
+//struct minmea_sentence_laf {
+//
+//};
+
+
+
+
 /**
  * Calculate raw sentence checksum. Does not check sentence integrity.
  */
@@ -207,6 +277,14 @@ bool minmea_parse_gst(struct minmea_sentence_gst *frame, const char *sentence);
 bool minmea_parse_gsv(struct minmea_sentence_gsv *frame, const char *sentence);
 bool minmea_parse_vtg(struct minmea_sentence_vtg *frame, const char *sentence);
 bool minmea_parse_zda(struct minmea_sentence_zda *frame, const char *sentence);
+
+// Flarm sentences
+bool minmea_parse_lau(struct minmea_sentence_lau *frame, const char *sentence);
+bool minmea_parse_laa(struct minmea_sentence_laa *frame, const char *sentence);
+bool minmea_parse_lae(struct minmea_sentence_lae *frame, const char *sentence);
+bool minmea_parse_rmz(struct minmea_sentence_rmz *frame, const char *sentence);
+//bool minmea_parse_lar(struct minmea_sentence_lar *frame, const char *sentence);
+//bool minmea_parse_laf(struct minmea_sentence_laf *frame, const char *sentence);
 
 /**
  * Convert GPS UTC date/time representation to a UNIX timestamp.
